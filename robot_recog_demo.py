@@ -106,6 +106,7 @@ def sortArray(x, y):
 
 def checkForAverage(p):
     global maxVal
+    global b
     for a in range(0, len(p)):
         val = p[a]
         if (val > maxVal):
