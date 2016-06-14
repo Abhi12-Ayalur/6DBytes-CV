@@ -8,12 +8,11 @@ from matplotlib import pyplot as pl
 
 cap = cv2.VideoCapture(0)
 
-while(True):
+while(timeit.default_timer() < 30):
     # Capture frame-by-frame
     ret, frame = cap.read()
-    cv2.imshow('frame',frame)
-    if cv2.waitKey(25) & 0xFF == ord('q'):
-        break
+    #cv2.imshow('frame',frame)
+    cv2.waitKey(35)
 
 # When everything done, release the capture
 cap.release()
