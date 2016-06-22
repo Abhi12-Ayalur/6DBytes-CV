@@ -77,7 +77,7 @@ def startClientServerThreads():
 def captureAndLoadImage(): # Captures video in image frme
     
     ret, capImg = cap.read()
-    cv2.waitKey(75)
+    cv2.waitKey(100)
     return capImg
 
 def showImage(capImg): # Simple function to display an image
@@ -131,8 +131,8 @@ def colorAndCornerRecognition(capImg): # Uses color and contour recognition to d
 
     # Get image, make it hsv, filter color of interest 
     hsv = cv2.cvtColor(capImg, cv2.COLOR_BGR2HSV)
-    lower_color = np.array([5, 100 , 160])
-    upper_color = np.array([20, 220, 230])
+    lower_color = np.array([5, 100, 160])
+    upper_color = np.array([20, 225, 230])
     mask = cv2.inRange(hsv, lower_color, upper_color)
     cv2.imshow('mask', mask)
     res = cv2.bitwise_and(capImg, capImg, mask=mask)
@@ -191,12 +191,49 @@ def colorAndCornerRecognition(capImg): # Uses color and contour recognition to d
     return (cx, cy)
     
     
-def computeImage(cx, cy): # Compute proportions and coordinates to send to robot (not Y)
-    robotX = str((cx*507/640 -232)/1000)
-    robotY = str(0.636)
-    robotZ = str((466 - cy*456/480)/1000)
+def computeImage(cx, cy): # Compute proportions and coordinates for movement
+    robotX = ((cx*507/640 -232)/1000)
+    robotY = (0.636)
+    robotZ = ((466 - cy*456/480)/1000)
     return (robotX, robotY, robotZ)
     
+def moveRobot(robotX, robotZ): # Computes movement for actual robot, coordinates are based on robot constraints
+    moveY = 0.0
+    print ('robotX ', robotX, 'robotZ ', robotZ)
+    if (abs(robotX*1000 - 476/2) > 35):
+        moveX = float(robotX*1000 - 476/2)
+        print ('moveX1 ' , moveX)
+        robotEndX = moveX + robotX*1000
+    else:
+        moveX = 0
+        print ('moveX2 ' , moveX)
+    if (abs(robotZ*1000 - 43/2) > 35):
+        moveZ = float(robotZ*1000 - 43/2)
+        print ('moveZ1 ', moveZ)
+        robotEndZ = moveZ + robotZ*1000
+    else:
+        moveZ = 0
+        print ('moveZ2 ', moveZ)
+    #if (robotEndX > 466) or (robotEndX < 10) or (robotEndZ < -232) or (robotEndZ > 275):
+        #moveX = 0
+        #moveZ = 0
+    print ('moveX ' , moveX, 'moveY ', moveY, 'moveZ ', moveZ)
+    return (moveX, moveY, moveZ)
+
+def moveSimRobot(robotX, robotZ): # Puts dots that image would move to in a simulator
+    moveY = 0
+    inCenter = 0
+    if (abs(int(robotX - 507/2)) > 50):
+        moveX = int(robotX)
+        inCenter = 1
+    else:
+        moveX = int(507/2)
+    if (abs(int(robotZ - 456/2)) > 50):
+        moveZ = int(robotZ)
+        inCenter = 1
+    else:
+        moveZ = int(456/2)
+    return (moveX, moveY, moveZ, inCenter)
 
 def perform_robot_dance(client):
     global gx
@@ -214,7 +251,7 @@ def perform_robot_dance(client):
     start = timeit.default_timer()
     stop = start
 
-    while (stop - start < 60):
+    while (stop - start < 15):
         b = 0
         avgX=[]
         avgY=[]
@@ -225,13 +262,23 @@ def perform_robot_dance(client):
         capImg = captureAndLoadImage()
         (cx, cy) = colorAndCornerRecognition(capImg)
         
-        if (samples >= 1) and (cx != 0)and (50<cx<590) and (50<cy<430):
+        if (samples >= 2) and (cx != 0):
             global imageFrame
             (robotX, robotY, robotZ) = computeImage(cx, cy)
-            cx = int(cx*507/640)
-            cy = int(cy*456/480)
-            imageFrame = cv2.rectangle(imageFrame, (cx -1, cy-1), (cx+1, cy+1), (255,0,0), -1, 8, 0)  
-            msg_to_robot = '[1000][3][' + robotX + '][' + robotY + '][' + robotZ + ']'
+            print ('robotX ' , robotX , ' robotY ' , robotY , ' robotZ ' , robotZ)
+            '''robotX = str(robotX)
+            robotY = str(robotY)
+            robotZ = str(robotZ)'''
+            (moveX, moveY, moveZ) = moveRobot(robotX, robotZ)
+            moveX = str(moveX/1000)
+            moveY = str(moveY/1000)
+            moveZ = str(moveZ/1000)
+            #cx = int(cx*507/640)
+            #cy = int(cy*456/480)
+            #(moveSimX, moveSimY, moveSimZ, inCenter) = moveSimRobot(cx, cy)
+           # if (inCenter != 0):
+           #     imageFrame = cv2.rectangle(imageFrame, (moveSimX -1, moveSimZ-1), (moveSimX+1, moveSimZ+1), (255,0,0), -1, 8, 0)  
+            msg_to_robot = '[1001][3][' + moveX + '][' + moveY + '][' + moveZ + ']'
             print (msg_to_robot)
             client.sock.send(msg_to_robot.encode())
             #data = client.sock.recv(1024).decode()
