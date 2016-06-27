@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import timeit
 
-# Declare socket parameters
+# Declare socket parameters, global variables, and standard variables
 host = "192.168.1.84"
 port = 60000
 print (host)
@@ -32,6 +32,10 @@ global p
 global posX
 global posY
 global b
+global placeThresh
+global prevMsgToRob
+prevMsgToRob = ''
+placeThresh = 10
 maxVal = 0
 mx = 0
 my = 0
@@ -55,9 +59,9 @@ class client(Thread):
         self.start()
 
     def run(self):
-        print('Client connected\n')
-        msg_from_robot = self.sock.recv(1024).decode()
-        print('Robot sent:', msg_from_robot)
+        print('Client connected')
+        #msg_from_robot = self.sock.recv(1024).decode()
+        #print('Robot sent:', msg_from_robot)
         while 1:
             perform_robot_dance(self)
             #self.sock.close()
@@ -74,10 +78,10 @@ def startClientServerThreads():
     except (KeyboardInterrupt, SystemExit):
         sys.exit()
 
-def captureAndLoadImage(): # Captures video in image frme
+def captureAndLoadImage(): # Captures video in image frame
     
     ret, capImg = cap.read()
-    cv2.waitKey(75)
+    cv2.waitKey(300)
     return capImg
 
 def showImage(capImg): # Simple function to display an image
@@ -131,8 +135,8 @@ def colorAndCornerRecognition(capImg): # Uses color and contour recognition to d
 
     # Get image, make it hsv, filter color of interest 
     hsv = cv2.cvtColor(capImg, cv2.COLOR_BGR2HSV)
-    lower_color = np.array([5, 100 , 160])
-    upper_color = np.array([20, 220, 230])
+    lower_color = np.array([20, 170 , 0])
+    upper_color = np.array([40, 255, 250])
     mask = cv2.inRange(hsv, lower_color, upper_color)
     cv2.imshow('mask', mask)
     res = cv2.bitwise_and(capImg, capImg, mask=mask)
@@ -153,9 +157,12 @@ def colorAndCornerRecognition(capImg): # Uses color and contour recognition to d
         if (existMoments != 0.0):
             x = int(M['m10']/M['m00'])
             y = int(M['m01']/M['m00'])
-            posX.append(x)
-            posY.append(y)
-            sortArray(x, y)
+            area = cv2.contourArea(cnt)
+            area = int(area)
+            if (250<area<2000):
+                posX.append(x)
+                posY.append(y)
+                sortArray(x, y)
             
 
     if ( len(posX) <= 0 ):
@@ -167,7 +174,7 @@ def colorAndCornerRecognition(capImg): # Uses color and contour recognition to d
     cy = avgY[b]
 
     # Check mx/my thresholds to create existence of a possible point        
-    if (abs(cx - mx) < 50) and (abs(cy-my) < 50):
+    if (abs(cx - mx) < placeThresh) and (abs(cy-my) < placeThresh):
         samples = samples + 1
         #print ('Within threshold cx is', cx, ' cy is ', cy, ' mx', mx, ' my', my,
         #       ' gx', gx, ' gy', gy, ' samples', samples)
@@ -178,7 +185,7 @@ def colorAndCornerRecognition(capImg): # Uses color and contour recognition to d
         samples = 0
         #print ('Moved cx is', cx, ' cy is ', cy, ' mx', mx, ' my', my,
         #      ' gx', gx, ' gy', gy, ' samples', samples)
-        if (((abs(gx - cx)<50 and (abs(gy-cy) <50)))):
+        if (((abs(gx - cx)<placeThresh and (abs(gy-cy) <placeThresh)))):
             mx = gx
             my = gy
         else:
@@ -225,15 +232,21 @@ def perform_robot_dance(client):
         capImg = captureAndLoadImage()
         (cx, cy) = colorAndCornerRecognition(capImg)
         
-        if (samples >= 1) and (cx != 0)and (50<cx<590) and (50<cy<430):
+        if (samples >= 0) and (cx != 0):
             global imageFrame
+            global prevMsgToRob
             (robotX, robotY, robotZ) = computeImage(cx, cy)
-            cx = int(cx*507/640)
-            cy = int(cy*456/480)
-            imageFrame = cv2.rectangle(imageFrame, (cx -1, cy-1), (cx+1, cy+1), (255,0,0), -1, 8, 0)  
+            cx = int(cx)
+            cy = int(cy)
+            #cx = int(cx*507/640)
+            #cy = int(cy*456/480)
+            imageFrame = cv2.rectangle(capImg, (cx -1, cy-1), (cx+1, cy+1), (255,0,0), -1, 8, 0)  
+            cv2.imshow('frame', imageFrame)
             msg_to_robot = '[1000][3][' + robotX + '][' + robotY + '][' + robotZ + ']'
-            print (msg_to_robot)
-            client.sock.send(msg_to_robot.encode())
+            if (msg_to_robot != prevMsgToRob):
+                print (msg_to_robot)
+                client.sock.send(msg_to_robot.encode())
+                prevMsgToRob = msg_to_robot
             #data = client.sock.recv(1024).decode()
             #print (data)
             #return (cx, cy)
@@ -243,8 +256,8 @@ def perform_robot_dance(client):
             gx = mx
             gy = my
         else:
-            if (((abs(gx - cx)<50 and (abs(gy-cy) <50)))):
-                if (not((abs(mx - cx)<50 and (abs(my-cy) <50)))):
+            if (((abs(gx - cx)<placeThresh and (abs(gy-cy) <placeThresh)))):
+                if (not((abs(mx - cx)<placeThresh and (abs(my-cy) <placeThresh)))):
                     mx = gx
                     my = gy
                     samples = 0
