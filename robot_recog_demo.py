@@ -18,6 +18,8 @@ global image
 global M
 global cx
 global cy
+global imageFrame
+imageFrame = np.zeros((456, 507, 3), np.uint8)
 
 class client(Thread):
     def __init__(self, socket, address):
@@ -123,8 +125,13 @@ def colorAndCornerRecognition(capImg):
     if (M['m00'] == 0.0):
         cx = 320
         cy = 240
-        
+
+    global imageFrame
+    imageFrame = cv2.rectangle(imageFrame, (cx -1, cy-1), (cx+1, cy+1), (255,0,0), -1, 8, 0)  
     return (cx, cy)
+    cv2.imshow(imageFrame, 'frame')
+    cv2.waitkey(0)
+    
     
 def computeImage(cx, cy):
     robotX = str((cx*507/640 -232)/1000)
@@ -140,16 +147,16 @@ def perform_robot_dance(client):
         #while (1):
         capImg = captureAndLoadImage() 
         (cx, cy) = colorAndCornerRecognition(capImg)
-        (robotX, robotY, robotZ) = computeImage(cx, cy)
-        msg_to_robot = '[1000][3][' + robotX + '][' + robotY + '][' + robotZ + ']'
-        print (msg_to_robot)
-        client.sock.send(msg_to_robot.encode())
-        data = client.sock.recv(1024).decode()
-        print (data)
+        #(robotX, robotY, robotZ) = computeImage(cx, cy)
+        #msg_to_robot = '[1000][3][' + robotX + '][' + robotY + '][' + robotZ + ']'
+        #print (msg_to_robot)
+        #client.sock.send(msg_to_robot.encode())
+        #data = client.sock.recv(1024).decode()
+        #print (data)
 
     
                  
 # Real code
-startClientServerThreads()
-#perform_robot_dance()
+#startClientServerThreads()
+perform_robot_dance(client)
 
