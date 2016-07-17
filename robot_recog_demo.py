@@ -146,12 +146,10 @@ def colorAndCornerRecognition(capImg): # Uses color and contour recognition to d
     img = cv2.cvtColor(capImg,cv2.COLOR_BGR2GRAY)
     ret, thresh = cv2.threshold(img, 15, 250, cv2.THRESH_BINARY)
     image, contours, heirarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    #cv2.imshow('thresh', image)
+
     # Find the appropriate contours, check the moments and get the average
     for i in range (0, len(contours)):
-        #print ( 'contour len', len(contours), 'i ', i, 'Cluster len ', len(avgX))
         cnt = contours[i]
-        #print ('contours ', contours)
         M = cv2.moments(cnt)
         existMoments = float(M['m10'])
         if (existMoments != 0.0):
@@ -169,22 +167,17 @@ def colorAndCornerRecognition(capImg): # Uses color and contour recognition to d
         return (0, 0)
     
     b = checkForAverage(p)
-    #print ('posX ', posX, ' posY ', posY, 'avgX ', avgX, 'avgY ', avgY, 'p ', p, 'b ', b)
     cx = avgX[b]
     cy = avgY[b]
 
     # Check mx/my thresholds to create existence of a possible point        
     if (abs(cx - mx) < placeThresh) and (abs(cy-my) < placeThresh):
         samples = samples + 1
-        #print ('Within threshold cx is', cx, ' cy is ', cy, ' mx', mx, ' my', my,
-        #       ' gx', gx, ' gy', gy, ' samples', samples)
         cx = mx
         cy = my
         
     else:
         samples = 0
-        #print ('Moved cx is', cx, ' cy is ', cy, ' mx', mx, ' my', my,
-        #      ' gx', gx, ' gy', gy, ' samples', samples)
         if (((abs(gx - cx)<placeThresh and (abs(gy-cy) <placeThresh)))):
             mx = gx
             my = gy
@@ -192,9 +185,6 @@ def colorAndCornerRecognition(capImg): # Uses color and contour recognition to d
             mx = cx
             my = cy
             
-    # Print supposed cx       
-    #print ( 'contour len', len(contours), 'i ', i, 'Cluster len ', len(avgX))
-    #print ('cx ', cx, 'cy ' , cy)
     return (cx, cy)
     
     
@@ -236,11 +226,9 @@ def perform_robot_dance(client):
             global imageFrame
             global prevMsgToRob
             (robotX, robotY, robotZ) = computeImage(cx, cy)
-            cx = int(cx)
-            cy = int(cy)
-            #cx = int(cx*507/640)
-            #cy = int(cy*456/480)
-            imageFrame = cv2.rectangle(capImg, (cx -1, cy-1), (cx+1, cy+1), (255,0,0), -1, 8, 0)  
+            mockX = int(cx*507/640) 
+            mockY = int(cy*456/480)
+            imageFrame = cv2.rectangle(capImg, (mockX -1, mockY-1), (mockX+1, mockY+1), (255,0,0), -1, 8, 0)  
             cv2.imshow('frame', imageFrame)
             msg_to_robot = '[1000][3][' + robotX + '][' + robotY + '][' + robotZ + ']'
             if (msg_to_robot != prevMsgToRob):
@@ -249,10 +237,6 @@ def perform_robot_dance(client):
                 prevMsgToRob = msg_to_robot
             #data = client.sock.recv(1024).decode()
             #print (data)
-            #return (cx, cy)
-            #print ('Printing dot cx is', cx, ' cy is ', cy, ' mx', mx, ' my', my,
-            #       ' gx', gx, ' gy', gy, ' samples', samples)
-            #cv2.imshow('frame', imageFrame)
             gx = mx
             gy = my
         else:
@@ -262,9 +246,6 @@ def perform_robot_dance(client):
                     my = gy
                     samples = 0
         stop = timeit.default_timer()
-        #print ('time take is: ' , stop - start)
-        #print ('Printing dot cx is', cx, ' cy is ', cy, ' mx', mx, ' my', my,
-                 #  ' gx', gx, ' gy', gy, ' samples', samples)
     print ('Done')
     showImage(imageFrame)
                  
