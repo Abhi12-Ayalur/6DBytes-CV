@@ -1,6 +1,1 @@
-# image-recognition
-Please cite properly when using code.
-Made for and in collaboration with local Bay Area company 6DBytes.
-Files that help capture and track an object through color and corner recognition, along with some centroid and contour recognition features. End-goal is to broadcast (x,y) coordinates of object to external IoT device and receive information. 
-Written in Python, can run in Python 2 or 3. 
-Special thanks to PyImageSearch.com and the OpenCV documentation for use of their tutorials and documentation. Also, thanks to Matplotlib. 
+Made for 6DBytes, local Bay Area tech startup. Captures and tracks an object through color, centroid and contour recognition features. Broadcasts Cartesian coordinates of object to external IoT device and receive information via TCP Socket Connection. Uses OpenCV on Python (Preferably using Raspberry Pi or basic Linux, mods have to be made to use on Mac/Windows) 
